@@ -65,6 +65,7 @@ function tanh_train_model()
   A, b, x0 = tan_data_train()
   Ahat = Diagonal(b)*A';
   r = zeros(size(Ahat,1))
+  tmp = zeros(size(Ahat,1))
 
   function resid!(r, x)
     mul!(r, Ahat, x)
@@ -77,15 +78,20 @@ function tanh_train_model()
 
   function jacv!(Jv, x, v)
     mul!(r, Ahat, x)
-    mul!(Jv, -Ahat, v)
+    mul!(Jv, Ahat, v)
     Jv .= ((sech.(r)).^2) .* Jv
+    Jv .*= -1
   end
   function jactv!(Jtv, x, v)
     mul!(r, Ahat, x)
-    tmp = -Diagonal(((sech.(r)).^2))*Ahat;
-    mul!(Jtv, tmp', v)
+    # tmp = -Diagonal(((sech.(r)).^2))*Ahat;
+    # mul!(Jtv, tmp', v)
     # v .= -((sech.(r)).^2) .* v
-    # mul!(Jtv, Ahat', v)
+    tmp .= sech.(r).^2
+    tmp .*= v
+    tmp .*= -1
+    mul!(Jtv, Ahat', tmp)
+    Jtv
   end
   function obj(x)
     resid!(r, x)
